@@ -2,11 +2,11 @@ package module
 
 import (
 	"fmt"
+	"github.com/ProjectAthenaa/go-credit-card"
 	http "github.com/ProjectAthenaa/sonic-core/fasttls"
 	"github.com/ProjectAthenaa/sonic-core/protos/module"
 	"github.com/ProjectAthenaa/sonic-core/sonic/antibots/shape"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/ProjectAthenaa/go-credit-card"
 	"regexp"
 )
 
@@ -35,15 +35,15 @@ func (tk *Task) GenerateDefaultHeaders(referrer string) http.Headers {
 		`accept`:             {`application/json`},
 		`accept-encoding`:    {`gzip, deflate, br`},
 		`accept-language`:    {`en-us`},
-		`content-type`:       {`application/json`},
+		`content-type`:       {`application/x-www-form-urlencoded; charset=UTF-8`},
 		`sec-ch-ua`:          {`"Chromium";v="91", " Not A;Brand";v="99", "Google Chrome";v="91"`},
 		`sec-ch-ua-mobile`:   {`?0`},
 		`Sec-Fetch-Site`:     {`same-site`},
 		`Sec-Fetch-Dest`:     {`empty`},
 		`Sec-Fetch-Mode`:     {`cors`},
-		`x-application-name`: {`web`},
 		`referer`:            {referrer},
-		`origin`:             {`https://www.target.com`},
+		`X-Requested-With`:   {`XMLHttpRequest`},
+		`origin`:             {`https://www.newbalance.com`},
 		`Pragma`:             {`no-cache`},
 		`Cache-Control`:      {`no-cache`},
 		`Connection`:         {`keep-alive`},

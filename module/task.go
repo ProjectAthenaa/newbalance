@@ -12,6 +12,7 @@ var _ face.ICallback = (*Task)(nil)
 type Task struct {
 	*base.BTask
 	Monitor *frame.PubSub
+	productUrl 		     string
 	productLineItemUUID  string
 	originalShipmentUUID string
 	shipmentUUID         string
@@ -34,7 +35,6 @@ func (tk *Task) OnPreStart() error {
 	return nil
 }
 func (tk *Task) OnStarting() {
-	tk.SetStatus(module.STATUS_STARTING, "starting task")
 	tk.FastClient.CreateCookieJar()
 	tk.Flow()
 }
@@ -55,11 +55,21 @@ func (tk *Task) Flow() {
 	}
 	defer pubsub.Close()
 
+	tk.SetStatus(module.STATUS_MONITORING)
 	monitorData := <- pubsub.Chan(tk.Ctx)
 	tk.VariantId = monitorData["variantid"].(string)
 	tk.PID = monitorData["pid"].(string)
+	tk.productUrl = monitorData["endpoint"].(string)
+
+	tk.SetStatus(module.STATUS_PRODUCT_FOUND)
 
 	funcarr := []func(){
+		tk.GetProductPage,
+		tk.ATC,
+		tk.BeginCheckout,
+		tk.Shipping,
+		tk.Payment,
+		tk.PlaceOrder,
 	}
 
 	for _, f := range funcarr {

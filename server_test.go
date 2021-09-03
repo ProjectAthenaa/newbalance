@@ -48,6 +48,8 @@ func TestModule(t *testing.T) {
 	ip := "localhost"
 	port := "8866"
 
+	core.Base.GetRedis("cache").Publish(context.Background(), fmt.Sprintf("proxies:%s", product.SiteNewBalance), fmt.Sprintf(`%s:%s`, ip, port))
+
 	tk := &module.Data{
 		TaskID: uuid.NewString(),
 		Profile: &module.Profile{
@@ -110,7 +112,17 @@ func TestModule(t *testing.T) {
 		},
 	}
 
-	conn, err := grpc.Dial("localhost:4000", grpc.WithInsecure())
+	conn, err := grpc.DialContext(context.Background(), "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := module.NewModuleClient(conn)
+	_, err = client.Task(context.Background(), tk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	conn, err = grpc.Dial("localhost:4000", grpc.WithInsecure())
 	monitorClient := monitor.NewMonitorClient(conn)
 	monitorClient.Start(context.Background(), &monitor_controller.Task{
 		Site:         string(product.SiteNewBalance),
@@ -119,21 +131,12 @@ func TestModule(t *testing.T) {
 		Metadata:     tk.Metadata,
 	})
 
-	conn, err = grpc.DialContext(context.Background(), "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := module.NewModuleClient(conn)
+
 	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*5))
 
 	t.Log("connecting to redis")
 	pubsub := core.Base.GetRedis("cache").Subscribe(ctx, fmt.Sprintf("tasks:updates:%s", subToken))
 	t.Log("connected to redis")
-
-	_, err = client.Task(context.Background(), tk)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	for msg := range pubsub.Channel() {
 		var data module.Status

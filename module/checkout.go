@@ -9,7 +9,7 @@ import (
 )
 
 func (tk *Task) BeginCheckout() {
-	checkouthtmlreq, err := tk.NewRequest("GET", "https://www.newbalance.com/checkout-begin/", nil)
+	checkouthtmlreq, err := tk.NewRequest("GET", "https://www.newbalance.com/cart//", nil)
 	if err != nil {
 		tk.SetStatus(module.STATUS_ERROR, err.Error())
 		tk.Stop()
