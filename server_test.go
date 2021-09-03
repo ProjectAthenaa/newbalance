@@ -1,0 +1,146 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/ProjectAthenaa/newbalance/config"
+	module2 "github.com/ProjectAthenaa/newbalance/module"
+	"github.com/ProjectAthenaa/sonic-core/protos/module"
+	"github.com/ProjectAthenaa/sonic-core/protos/monitor"
+	monitor_controller "github.com/ProjectAthenaa/sonic-core/protos/monitorController"
+	"github.com/ProjectAthenaa/sonic-core/sonic/core"
+	"github.com/ProjectAthenaa/sonic-core/sonic/database/ent/product"
+	"github.com/google/uuid"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/test/bufconn"
+	"net"
+	"testing"
+	"time"
+)
+
+const bufSize = 1024 * 1024
+
+var lis *bufconn.Listener
+
+func bufDialer(context.Context, string) (net.Conn, error) {
+	return lis.Dial()
+}
+
+func init() {
+	//go debug.StartShapeServer()
+	lis = bufconn.Listen(bufSize)
+	server := grpc.NewServer()
+	module.RegisterModuleServer(server, module2.Server{})
+	go func() {
+		server.Serve(lis)
+	}()
+}
+
+func TestModule(t *testing.T) {
+	subToken, controlToken, monitorChannel := uuid.NewString(), uuid.NewString(), uuid.NewString()
+
+	//username := "9727bcdc9173e7516691438ab8fde5dc725395482e2e49938ed5aa0343eb1fccca9c0985efde687f2653b55eae32b1090cd0791d3a97ac4d5a46031cbf59651f7780b6c7dd951b0a0948fd1ed00b2cac"
+	//password := "d3ocxl57dd22"
+	//ip := "proxy.oculus-proxy.com"
+	//port := "31111"
+
+	ip := "localhost"
+	port := "8866"
+
+	tk := &module.Data{
+		TaskID: uuid.NewString(),
+		Profile: &module.Profile{
+			Email: "poprer656sad@gmail.com",
+			Shipping: &module.Shipping{
+				FirstName:   "Omar",
+				LastName:    "Hu",
+				PhoneNumber: "6463222013",
+				ShippingAddress: &module.Address{
+					AddressLine:  "7004 JFK BLVD E",
+					AddressLine2: nil,
+					Country:      "US",
+					State:        "NEW JERSEY",
+					City:         "WEST NEW YORK",
+					ZIP:          "07093",
+					StateCode:    "NJ",
+				},
+				BillingAddress: &module.Address{
+					AddressLine:  "7004 JFK BLVD E",
+					AddressLine2: nil,
+					Country:      "US",
+					State:        "NEW JERSEY",
+					City:         "WEST NEW YORK",
+					ZIP:          "07093",
+					StateCode:    "NJ",
+				},
+				BillingIsShipping: true,
+			},
+			Billing: &module.Billing{
+				Number:          "4207670236068972",
+				ExpirationMonth: "05",
+				ExpirationYear:  "25",
+				CVV:             "997",
+			},
+		},
+		Proxy: &module.Proxy{
+			//Username: &username,
+			//Password: &password,
+			IP:       ip,
+			Port:     port,
+		},
+		TaskData: &module.TaskData{
+			RandomSize:  false,
+			RandomColor: false,
+			Color:       []string{"1"},
+			Size:        []string{"1"},
+		},
+		Metadata: map[string]string{
+			"username":                        "terrydavis903@gmail.com",
+			"password":                        "0o0p0o0P",
+			*config.Module.Fields[0].FieldKey: "MCRZRV1-35865",
+			*config.Module.Fields[1].FieldKey: "7.5",
+			*config.Module.Fields[2].FieldKey: "D",
+			*config.Module.Fields[3].FieldKey: "womens",
+		},
+		Channels: &module.Channels{
+			UpdatesChannel:  subToken,
+			CommandsChannel: controlToken,
+			MonitorChannel: monitorChannel,
+		},
+	}
+
+	conn, err := grpc.Dial("localhost:4000", grpc.WithInsecure())
+	monitorClient := monitor.NewMonitorClient(conn)
+	monitorClient.Start(context.Background(), &monitor_controller.Task{
+		Site:         string(product.SiteNewBalance),
+		Lookup:       &monitor_controller.Task_Other{Other: true},
+		RedisChannel: monitorChannel,
+		Metadata:     tk.Metadata,
+	})
+
+	conn, err = grpc.DialContext(context.Background(), "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := module.NewModuleClient(conn)
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*5))
+
+	t.Log("connecting to redis")
+	pubsub := core.Base.GetRedis("cache").Subscribe(ctx, fmt.Sprintf("tasks:updates:%s", subToken))
+	t.Log("connected to redis")
+
+	_, err = client.Task(context.Background(), tk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for msg := range pubsub.Channel() {
+		var data module.Status
+		_ = json.Unmarshal([]byte(msg.Payload), &data)
+		fmt.Println(data.Status, data.Information["message"])
+		if data.Status == module.STATUS_STOPPED {
+			return
+		}
+	}
+}
