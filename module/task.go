@@ -11,7 +11,6 @@ var _ face.ICallback = (*Task)(nil)
 
 type Task struct {
 	*base.BTask
-	Monitor *frame.PubSub
 	productUrl 		     string
 	productLineItemUUID  string
 	originalShipmentUUID string
