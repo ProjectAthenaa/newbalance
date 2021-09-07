@@ -9,23 +9,13 @@ import (
 )
 
 func (tk *Task) BeginCheckout() {
-	checkouthtmlreq, err := tk.NewRequest("GET", "https://www.newbalance.com/cart//", nil)
+	checkouthtmlreq, err := tk.NewRequest("GET", "https://www.newbalance.com/checkout-begin/", nil)
 	if err != nil {
 		tk.SetStatus(module.STATUS_ERROR, err.Error())
 		tk.Stop()
 		return
 	}
-	checkouthtmlreq.Headers = tk.GenerateDefaultHeaders("https://www.newbalance.com/checkout-begin/?stage=payment")
-
-	shapeheaders, err := tk.getShapeHeaders()
-	if err != nil {
-		tk.SetStatus(module.STATUS_ERROR, "could not retrieve shape headers")
-		tk.Stop()
-		return
-	}
-	for k, v := range shapeheaders {
-		checkouthtmlreq.Headers[k] = []string{v}
-	}
+	checkouthtmlreq.Headers = tk.GenerateDefaultHeaders("https://www.newbalance.com/cart/")
 
 	checkouthtmlres, err := tk.Do(checkouthtmlreq)
 	if err != nil {
@@ -34,9 +24,9 @@ func (tk *Task) BeginCheckout() {
 		return
 	}
 
-	tk.productLineItemUUID = sonic.GrabValueFromHTMLName("productLineItemUUID", &checkouthtmlres.Body)
-	tk.originalShipmentUUID = sonic.GrabValueFromHTMLName("originalShipmentUUID", &checkouthtmlres.Body)
-	tk.shipmentUUID = sonic.GrabValueFromHTMLName("shipmentUUID", &checkouthtmlres.Body)
+	tk.productLineItemUUID = strings.ReplaceAll(sonic.GrabValueFromHTMLName("productLineItemUUID", &checkouthtmlres.Body), " ", "")
+	tk.originalShipmentUUID = strings.ReplaceAll(sonic.GrabValueFromHTMLName("originalShipmentUUID", &checkouthtmlres.Body), " ", "")
+	tk.shipmentUUID = strings.ReplaceAll(sonic.GrabValueFromHTMLName("shipmentUUID", &checkouthtmlres.Body), " ", "")
 	tk.csrf_token = sonic.GrabValueFromHTMLName("csrf_token", &checkouthtmlres.Body)
 
 }
@@ -49,39 +39,40 @@ func (tk *Task) Shipping() {
 		addrline2 = *tk.Data.Profile.Shipping.ShippingAddress.AddressLine2
 	}
 
-	poststring := url.QueryEscape(fmt.Sprintf(
+	poststring := fmt.Sprintf(
 		"productLineItemUUID=%s&"+
-			"originalShipmentUUID=%s&"+
-			"shipmentUUID=%s&"+
-			"zipCodeErrorMsg=Please enter a valid Zip/Postal code&"+
-			"dwfrm_shipping_shippingAddress_addressFields_country=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_firstName=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_lastName=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_address1=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_address2=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_city=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_states_stateCode=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_postalCode=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_phone=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_email=%s&"+
-			"dwfrm_shipping_shippingAddress_addressFields_addtoemaillist=true&"+
-			"csrf_token=%s&"+
-			"saveShippingAddr=false",
+	"originalShipmentUUID=%s&"+
+	"shipmentUUID=%s&"+
+	"zipCodeErrorMsg=Please+enter+a+valid+Zip%%2FPostal+code&"+
+	"dwfrm_shipping_shippingAddress_addressFields_country=%s&"+
+	"dwfrm_shipping_shippingAddress_addressFields_firstName=%s&"+
+	"dwfrm_shipping_shippingAddress_addressFields_lastName=%s&"+
+	"dwfrm_shipping_shippingAddress_addressFields_address1=%s&"+//
+	"dwfrm_shipping_shippingAddress_addressFields_address2=%s&"+//
+	"dwfrm_shipping_shippingAddress_addressFields_city=%s&"+
+	"dwfrm_shipping_shippingAddress_addressFields_states_stateCode=%s&"+
+	"dwfrm_shipping_shippingAddress_addressFields_postalCode=%s&"+
+	"dwfrm_shipping_shippingAddress_addressFields_phone=%s&"+
+	"dwfrm_shipping_shippingAddress_addressFields_email=%s&"+//
+	"dwfrm_shipping_shippingAddress_addressFields_addtoemaillist=false&"+
+	"dwfrm_shipping_shippingAddress_shippingMethodID=GROUND&"+
+	"csrf_token=%s&"+
+	"saveShippingAddr=false",
 		tk.productLineItemUUID,
 		tk.originalShipmentUUID,
 		tk.shipmentUUID,
 		tk.Data.Profile.Shipping.ShippingAddress.Country,
 		tk.Data.Profile.Shipping.FirstName,
 		tk.Data.Profile.Shipping.LastName,
-		tk.Data.Profile.Shipping.ShippingAddress.AddressLine,
-		addrline2,
-		tk.Data.Profile.Shipping.ShippingAddress.City,
+		strings.ReplaceAll(tk.Data.Profile.Shipping.ShippingAddress.AddressLine, " ", "+"),
+		strings.ReplaceAll(addrline2, " ", "+"),
+		strings.ReplaceAll(tk.Data.Profile.Shipping.ShippingAddress.City, " ", "+"),
 		tk.Data.Profile.Shipping.ShippingAddress.StateCode,
 		tk.Data.Profile.Shipping.ShippingAddress.ZIP,
-		tk.formatPhone(),
-		tk.Data.Profile.Email,
-		tk.csrf_token,
-	))
+		strings.ReplaceAll(tk.formatPhone(), " ", "+"),
+		url.QueryEscape(tk.Data.Profile.Email),
+		url.QueryEscape(tk.csrf_token),
+	)
 
 	shippingpostreq, err := tk.NewRequest("POST", "https://www.newbalance.com/on/demandware.store/Sites-NBUS-Site/en_US/CheckoutShippingServices-SubmitShipping", []byte(poststring))
 	if err != nil {
@@ -89,7 +80,18 @@ func (tk *Task) Shipping() {
 		tk.Stop()
 		return
 	}
-	shippingpostreq.Headers = tk.GenerateDefaultHeaders("https://www.newbalance.com/checkout-begin/?stage=payment")
+	shippingpostreq.Headers = tk.GenerateDefaultHeaders("https://www.newbalance.com/checkout-begin/?stage=shipping")
+
+	shapeheaders, err := tk.getShapeHeaders()
+	if err != nil {
+		tk.SetStatus(module.STATUS_ERROR, "could not retrieve shape headers")
+		tk.Stop()
+		return
+	}
+	for k, v := range shapeheaders {
+		shippingpostreq.Headers[k] = []string{v}
+	}
+	delete(shippingpostreq.Headers, "Accept")
 
 	shippingres, err := tk.Do(shippingpostreq)
 	if err != nil {
@@ -117,36 +119,7 @@ func (tk *Task) Payment() {
 			addrline2 = *tk.Data.Profile.Shipping.BillingAddress.AddressLine2
 		}
 
-		paymentform = url.QueryEscape(fmt.Sprintf(`csrf_token=%s&`+
-			`localizedNewAddressTitle=New+Address&`+
-			`dwfrm_billing_paymentMethod=CREDIT_CARD&`+
-			`dwfrm_billing_creditCardFields_cardNumber=%s&`+
-			`dwfrm_billing_creditCardFields_expirationMonth=%s&`+
-			`dwfrm_billing_creditCardFields_expirationYear=%s&`+
-			`dwfrm_billing_creditCardFields_securityCode=%s&`+
-			`dwfrm_billing_creditCardFields_cardType=%s&`+
-			`dwfrm_billing_paymentMethod=CREDIT_CARD&`+
-			`dwfrm_afterpay_isAfterpayUrl=%2Fon%2Fdemandware.store%2FSites-NBUS-Site%2Fen_US%2FAfterpayRedirect-IsAfterpay&`+
-			`dwfrm_afterpay_redirectAfterpayUrl=%2Fon%2Fdemandware.store%2FSites-NBUS-Site%2Fen_US%2FAfterpayRedirect-Redirect&`+
-			`addressSelector=new&`+
-			`dwfrm_billing_addressFields_country=%s&`+
-			`dwfrm_billing_addressFields_firstName=%s&`+
-			`dwfrm_billing_addressFields_lastName=%s&`+
-			`dwfrm_billing_addressFields_address1=%s&`+
-			`dwfrm_billing_addressFields_address2=%s&`+
-			`dwfrm_billing_addressFields_city=%s&`+
-			`dwfrm_billing_addressFields_states_stateCode=%s&`+
-			`dwfrm_billing_addressFields_postalCode=%s&`+
-			`dwfrm_billing_addressFields_email=%s&`+
-			`dwfrm_billing_addressFields_phone=%s&&`+
-			`dwfrm_billing_paymentMethod=CREDIT_CARD&`+
-			`dwfrm_billing_creditCardFields_cardNumber=%s&`+
-			`dwfrm_billing_creditCardFields_expirationMonth=%s&`+
-			`dwfrm_billing_creditCardFields_expirationYear=%s&`+
-			`dwfrm_billing_creditCardFields_securityCode=%s&`+
-			`dwfrm_billing_creditCardFields_cardType=%s&`+
-			`addressId=new&`+
-			`saveBillingAddr=false`,
+		paymentform = fmt.Sprintf(`csrf_token=%s&localizedNewAddressTitle=New+Address&dwfrm_billing_paymentMethod=CREDIT_CARD&dwfrm_billing_creditCardFields_cardNumber=%s&dwfrm_billing_creditCardFields_expirationMonth=%s&dwfrm_billing_creditCardFields_expirationYear=%s&dwfrm_billing_creditCardFields_securityCode=%s&dwfrm_billing_creditCardFields_cardType=%s&dwfrm_billing_paymentMethod=CREDIT_CARD&dwfrm_afterpay_isAfterpayUrl=%%2Fon%%2Fdemandware.store%%2FSites-NBUS-Site%%2Fen_US%%2FAfterpayRedirect-IsAfterpay&dwfrm_afterpay_redirectAfterpayUrl=%%2Fon%%2Fdemandware.store%%2FSites-NBUS-Site%%2Fen_US%%2FAfterpayRedirect-Redirect&addressSelector=new&dwfrm_billing_addressFields_country=%s&dwfrm_billing_addressFields_firstName=%s&dwfrm_billing_addressFields_lastName=%s&dwfrm_billing_addressFields_address1=%s&dwfrm_billing_addressFields_address2=%s&dwfrm_billing_addressFields_city=%s&dwfrm_billing_addressFields_states_stateCode=%s&dwfrm_billing_addressFields_postalCode=%s&dwfrm_billing_addressFields_email=%s&dwfrm_billing_addressFields_phone=%s&&dwfrm_billing_paymentMethod=CREDIT_CARD&dwfrm_billing_creditCardFields_cardNumber=%s&dwfrm_billing_creditCardFields_expirationMonth=%s&dwfrm_billing_creditCardFields_expirationYear=%s&dwfrm_billing_creditCardFields_securityCode=%s&dwfrm_billing_creditCardFields_cardType=%s&addressId=new&saveBillingAddr=false`,
 			tk.csrf_token,
 			tk.Data.Profile.Billing.Number,
 			monthregex.ReplaceAllString(tk.Data.Profile.Billing.ExpirationMonth, ""),
@@ -168,42 +141,13 @@ func (tk *Task) Payment() {
 			"20"+tk.Data.Profile.Billing.ExpirationYear,
 			tk.Data.Profile.Billing.CVV,
 			tk.cardType(),
-		))
+		)
 	} else {
 		var addrline2 string
 		if tk.Data.Profile.Shipping.ShippingAddress.AddressLine2 != nil {
 			addrline2 = *tk.Data.Profile.Shipping.ShippingAddress.AddressLine2
 		}
-		paymentform = url.QueryEscape(fmt.Sprintf(`csrf_token=%s&`+
-			`localizedNewAddressTitle=New+Address&`+
-			`dwfrm_billing_paymentMethod=CREDIT_CARD&`+
-			`dwfrm_billing_creditCardFields_cardNumber=%s&`+
-			`dwfrm_billing_creditCardFields_expirationMonth=%s&`+
-			`dwfrm_billing_creditCardFields_expirationYear=%s&`+
-			`dwfrm_billing_creditCardFields_securityCode=%s&`+
-			`dwfrm_billing_creditCardFields_cardType=%s&`+
-			`dwfrm_billing_paymentMethod=CREDIT_CARD&`+
-			`dwfrm_afterpay_isAfterpayUrl=%2Fon%2Fdemandware.store%2FSites-NBUS-Site%2Fen_US%2FAfterpayRedirect-IsAfterpay&`+
-			`dwfrm_afterpay_redirectAfterpayUrl=%2Fon%2Fdemandware.store%2FSites-NBUS-Site%2Fen_US%2FAfterpayRedirect-Redirect&`+
-			`addressSelector=%s&`+
-			`dwfrm_billing_addressFields_country=%s&`+
-			`dwfrm_billing_addressFields_firstName=%s&`+
-			`dwfrm_billing_addressFields_lastName=%s&`+
-			`dwfrm_billing_addressFields_address1=%s&`+
-			`dwfrm_billing_addressFields_address2=%s&`+
-			`dwfrm_billing_addressFields_city=%s&`+
-			`dwfrm_billing_addressFields_states_stateCode=%s&`+
-			`dwfrm_billing_addressFields_postalCode=%s&`+
-			`dwfrm_billing_addressFields_email=%s&`+
-			`dwfrm_billing_addressFields_phone=%s&&`+
-			`dwfrm_billing_paymentMethod=CREDIT_CARD&`+
-			`dwfrm_billing_creditCardFields_cardNumber=%s&`+
-			`dwfrm_billing_creditCardFields_expirationMonth=%s&`+
-			`dwfrm_billing_creditCardFields_expirationYear=%s&`+
-			`dwfrm_billing_creditCardFields_securityCode=%s&`+
-			`dwfrm_billing_creditCardFields_cardType=%s&`+
-			`addressId=%s&`+
-			`saveBillingAddr=false`,
+		paymentform = fmt.Sprintf(`csrf_token=%s&localizedNewAddressTitle=New+Address&dwfrm_billing_paymentMethod=CREDIT_CARD&dwfrm_billing_creditCardFields_cardNumber=%s&dwfrm_billing_creditCardFields_expirationMonth=%s&dwfrm_billing_creditCardFields_expirationYear=%s&dwfrm_billing_creditCardFields_securityCode=%s&dwfrm_billing_creditCardFields_cardType=%s&dwfrm_billing_paymentMethod=CREDIT_CARD&dwfrm_afterpay_isAfterpayUrl=%%2Fon%%2Fdemandware.store%%2FSites-NBUS-Site%%2Fen_US%%2FAfterpayRedirect-IsAfterpay&dwfrm_afterpay_redirectAfterpayUrl=%%2Fon%%2Fdemandware.store%%2FSites-NBUS-Site%%2Fen_US%%2FAfterpayRedirect-Redirect&addressSelector=%s&dwfrm_billing_addressFields_country=%s&dwfrm_billing_addressFields_firstName=%s&dwfrm_billing_addressFields_lastName=%s&dwfrm_billing_addressFields_address1=%s&dwfrm_billing_addressFields_address2=%s&dwfrm_billing_addressFields_city=%s&dwfrm_billing_addressFields_states_stateCode=%s&dwfrm_billing_addressFields_postalCode=%s&dwfrm_billing_addressFields_email=%s&dwfrm_billing_addressFields_phone=%s&&dwfrm_billing_paymentMethod=CREDIT_CARD&dwfrm_billing_creditCardFields_cardNumber=%s&dwfrm_billing_creditCardFields_expirationMonth=%s&dwfrm_billing_creditCardFields_expirationYear=%s&dwfrm_billing_creditCardFields_securityCode=%s&dwfrm_billing_creditCardFields_cardType=%s&addressId=%s&saveBillingAddr=false`,
 			tk.csrf_token,
 			tk.Data.Profile.Billing.Number,
 			monthregex.ReplaceAllString(tk.Data.Profile.Billing.ExpirationMonth, ""),
@@ -227,7 +171,7 @@ func (tk *Task) Payment() {
 			tk.Data.Profile.Billing.CVV,
 			tk.cardType(),
 			tk.originalShipmentUUID,
-		))
+		)
 	}
 
 	paymentreq, err := tk.NewRequest("POST", "https://www.newbalance.com/on/demandware.store/Sites-NBUS-Site/en_US/CheckoutServices-SubmitPayment", []byte(paymentform))
@@ -252,20 +196,20 @@ func (tk *Task) Payment() {
 
 	paymentres, err := tk.Do(paymentreq)
 	if err != nil {
-		tk.SetStatus(module.STATUS_ERROR, err.Error())
+		tk.SetStatus(module.STATUS_ERROR, "couldnt make payment req")
 		tk.Stop()
 		return
 	}
 
 	var paymentstruct *PaymentResponse
 	if err = json.Unmarshal(paymentres.Body, &paymentstruct); err != nil {
-		tk.SetStatus(module.STATUS_ERROR, err.Error())
+		tk.SetStatus(module.STATUS_ERROR, "couldnt unmarshal payment struct")
 		tk.Stop()
 		return
 	}
 
 	if paymentstruct.FieldErrors != nil {
-		tk.SetStatus(module.STATUS_ERROR, paymentstruct.FieldErrors[0].DwfrmBillingCreditCardFieldsCardNumber)
+		tk.SetStatus(module.STATUS_ERROR, paymentstruct.FieldErrors)
 		tk.Stop()
 		return
 	}
@@ -274,13 +218,13 @@ func (tk *Task) Payment() {
 }
 
 func (tk *Task) PlaceOrder() {
-	confirmationreq, err := tk.NewRequest("POST", "https://www.newbalance.com/on/demandware.store/Sites-NBUS-Site/en_US/CheckoutServices-PlaceOrder?termsconditions=undefined&DFReferenceId=", nil)
+	confirmationreq, err := tk.NewRequest("POST", `https://www.newbalance.com/on/demandware.store/Sites-NBUS-Site/en_US/CheckoutServices-PlaceOrder?termsconditions=undefined&DFReferenceId=`, nil)
 	if err != nil {
 		tk.SetStatus(module.STATUS_ERROR, err.Error())
 		tk.Stop()
 		return
 	}
-	confirmationreq.Headers = tk.GenerateDefaultHeaders("https://www.newbalance.com/checkout-begin/?stage=payment")
+	confirmationreq.Headers = tk.GenerateDefaultHeaders("https://www.newbalance.com/checkout-begin/?stage=placeOrder")
 
 	res, err := tk.Do(confirmationreq)
 	if err != nil {
@@ -297,8 +241,8 @@ func (tk *Task) PlaceOrder() {
 	}
 
 	if confirmationresponse.Error {
-		tk.SetStatus(module.STATUS_CHECKOUT_FAILED, "couldnt review")
-		tk.Restart()
+		tk.SetStatus(module.STATUS_CHECKOUT_FAILED, "couldnt confirm")
+		tk.Stop()
 		return
 	}
 
