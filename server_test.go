@@ -40,10 +40,11 @@ func init() {
 func TestModule(t *testing.T) {
 	subToken, controlToken, monitorChannel := uuid.NewString(), uuid.NewString(), uuid.NewString()
 
-	//username := "9727bcdc9173e7516691438ab8fde5dc725395482e2e49938ed5aa0343eb1fccca9c0985efde687f2653b55eae32b1090cd0791d3a97ac4d5a46031cbf59651f7780b6c7dd951b0a0948fd1ed00b2cac"
-	//password := "d3ocxl57dd22"
-	//ip := "proxy.oculus-proxy.com"
-	//port := "31111"
+	//:::
+	//username := "customer-aycd177189plan15t1630679745221-cc-us-sessid-0cqi4wwtx3eptak1iqtxz"
+	//password := "626qrj964QUM"
+	//ip := "resi.proxies.aycd.io"
+	//port := "7777"
 
 	ip := "localhost"
 	port := "8866"
