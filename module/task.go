@@ -52,6 +52,8 @@ func (tk *Task) Flow() {
 	log.Info("started flow")
 	pubsub, err := frame.SubscribeToChannel(tk.Data.Channels.MonitorChannel)
 	if err != nil{
+		log.Error(err)
+		tk.SetStatus(module.STATUS_ERROR, "error listening to monitor")
 		tk.Stop()
 		return
 	}
