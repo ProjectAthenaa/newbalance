@@ -6,8 +6,7 @@ import (
 )
 
 func (tk *Task) ATC() {
-	req, err := tk.NewRequest("POST", "https://www.newbalance.com/on/demandware.store/Sites-NBUS-Site/en_US/Cart-AddProduct", []byte(`pid=194768477287&quantity=1&estimatedDelivery=Estimated+delivery+-+2-5+business+days+once+shipped&options=%5B%5D`))
-	//req, err := tk.NewRequest("POST", "https://www.newbalance.com/on/demandware.store/Sites-NBUS-Site/en_US/Cart-AddProduct", []byte(fmt.Sprintf("pid=%s&quantity=1&estimatedDelivery=Estimated+delivery+-+2-5+business+days+once+shipped&options=%%5B%%5D", tk.VariantId)))
+	req, err := tk.NewRequest("POST", "https://www.newbalance.com/on/demandware.store/Sites-NBUS-Site/en_US/Cart-AddProduct", []byte(fmt.Sprintf("pid=%s&quantity=1&estimatedDelivery=Estimated+delivery+-+2-5+business+days+once+shipped&options=%%5B%%5D", tk.VariantId)))
 	if err != nil {
 		tk.SetStatus(module.STATUS_ERROR, "could not create atc req")
 		tk.Stop()
