@@ -1,6 +1,7 @@
 package module
 
 import (
+	"fmt"
 	"github.com/ProjectAthenaa/sonic-core/protos/module"
 	"github.com/ProjectAthenaa/sonic-core/sonic/base"
 	"github.com/ProjectAthenaa/sonic-core/sonic/face"
@@ -12,13 +13,13 @@ var _ face.ICallback = (*Task)(nil)
 
 type Task struct {
 	*base.BTask
-	productUrl 		     string
+	productUrl           string
 	productLineItemUUID  string
 	originalShipmentUUID string
 	shipmentUUID         string
 	csrf_token           string
-	PID					 string
-	VariantId    		 string
+	PID                  string
+	VariantId            string
 }
 
 func NewTask(data *module.Data) *Task {
@@ -51,15 +52,15 @@ func (tk *Task) OnStopping() {
 func (tk *Task) Flow() {
 	log.Info("started flow")
 	pubsub, err := frame.SubscribeToChannel(tk.Data.Channels.MonitorChannel)
-	if err != nil{
+	if err != nil {
 		log.Error(err)
 		tk.SetStatus(module.STATUS_ERROR, "error listening to monitor")
 		tk.Stop()
 		return
 	}
-
+	fmt.Println(tk.Data.Channels.MonitorChannel)
 	tk.SetStatus(module.STATUS_MONITORING)
-	monitorData := <- pubsub.Chan(tk.Ctx)
+	monitorData := <-pubsub.Chan(tk.Ctx)
 	log.Info("started monitoring")
 	pubsub.Close()
 	tk.VariantId = monitorData["variantid"].(string)
