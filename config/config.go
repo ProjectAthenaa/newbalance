@@ -16,7 +16,7 @@ func init() {
 		Name: string(product.SiteNewBalance),
 		Fields: []*sonic.ModuleField{
 			{
-				Validation: "/\\w+?-\\d+?/",
+				Validation: `/\w+?-\d+?/`,
 				Type:       sonic.FieldTypeText,
 				Label:      "PID",
 				FieldKey:   &pidkey,
