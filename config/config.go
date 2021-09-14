@@ -2,25 +2,18 @@ package config
 
 import (
 	"github.com/ProjectAthenaa/sonic-core/sonic"
-	"os"
-	"strings"
+	"github.com/ProjectAthenaa/sonic-core/sonic/database/ent/product"
 )
 
 var Module *sonic.Module
 
 func init() {
-	var name = "NewBalance"
-
-	if podName := os.Getenv("POD_NAME"); podName != "" {
-		name = strings.Split(podName, "-")[0]
-	}
-
 	pidkey := "LOOKUP_pid"
 	sizekey := "SIZE"
 	widthkey := "WIDTH"
 
 	Module = &sonic.Module{
-		Name: name,
+		Name: string(product.SiteNewBalance),
 		Fields: []*sonic.ModuleField{
 			{
 				Validation: "/\\w+?-\\d+?/",
