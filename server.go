@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/ProjectAthenaa/sonic-core/protos/module"
-	"github.com/ProjectAthenaa/sonic-core/sonic"
 	"github.com/ProjectAthenaa/newbalance/config"
 	moduleServer "github.com/ProjectAthenaa/newbalance/module"
+	"github.com/ProjectAthenaa/sonic-core/protos/module"
+	"github.com/ProjectAthenaa/sonic-core/sonic"
 	"github.com/prometheus/common/log"
 	"google.golang.org/grpc"
 	"net"
