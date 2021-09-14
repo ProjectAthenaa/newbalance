@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/ProjectAthenaa/go-credit-card v0.0.0-20210810002457-6d1ce3720969
-	github.com/ProjectAthenaa/sonic-core v0.0.0-20210914020022-da2ec577c57d
+	github.com/ProjectAthenaa/sonic-core v0.0.0-20210914181846-a348cf4eff99
 	github.com/google/uuid v1.3.0
 	github.com/json-iterator/go v1.1.11
 	github.com/prometheus/common v0.4.0
