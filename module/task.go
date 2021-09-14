@@ -50,7 +50,6 @@ func (tk *Task) OnStopping() {
 }
 
 func (tk *Task) Flow() {
-	log.Info("started flow")
 	pubsub, err := frame.SubscribeToChannel(tk.Data.Channels.MonitorChannel)
 	if err != nil {
 		log.Error(err)
@@ -61,7 +60,6 @@ func (tk *Task) Flow() {
 	fmt.Println(tk.Data.Channels.MonitorChannel)
 	tk.SetStatus(module.STATUS_MONITORING)
 	monitorData := <-pubsub.Chan(tk.Ctx)
-	log.Info("started monitoring")
 	pubsub.Close()
 	tk.VariantId = monitorData["variantid"].(string)
 	tk.PID = monitorData["pid"].(string)

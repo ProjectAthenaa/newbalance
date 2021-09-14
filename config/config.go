@@ -18,7 +18,6 @@ func init() {
 	pidkey := "LOOKUP_pid"
 	sizekey := "SIZE"
 	widthkey := "WIDTH"
-	genderkey := "GENDER"
 
 	Module = &sonic.Module{
 		Name: name,
@@ -30,19 +29,16 @@ func init() {
 				FieldKey:   &pidkey,
 			},
 			{
-				Type:       sonic.FieldTypeShoeSize,
-				Label:      "Size",
-				FieldKey:   &sizekey,
+				Type:           sonic.FieldTypeDropDown,
+				Label:          "Size",
+				FieldKey:       &sizekey,
+				DropdownValues: []string{"0", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "12.5", "13", "13.5", "14", "15", "16", "18", "19", "20"},
 			},
 			{
-				Type:       sonic.FieldTypeWidth,
-				Label:      "Width",
-				FieldKey:   &widthkey,
-			},
-			{
-				Type:       sonic.FieldTypeGender,
-				Label:      "Gender",
-				FieldKey:   &genderkey,
+				Type:           sonic.FieldTypeDropDown,
+				Label:          "Width",
+				FieldKey:       &widthkey,
+				DropdownValues: []string{"2A", "B", "D", "2E", "4E", "6E", "4A", "B", "M", "W", "XW"},
 			},
 		},
 	}
