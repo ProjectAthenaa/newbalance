@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/ProjectAthenaa/sonic-core/sonic"
 	"github.com/ProjectAthenaa/sonic-core/sonic/database/ent/product"
+	"net/url"
 )
 
 var Module *sonic.Module
@@ -16,7 +17,7 @@ func init() {
 		Name: string(product.SiteNewBalance),
 		Fields: []*sonic.ModuleField{
 			{
-				Validation: `/\w+?-\d+/`,
+				Validation: url.QueryEscape(`\w+-\d+`),
 				Type:       sonic.FieldTypeText,
 				Label:      "PID",
 				FieldKey:   &pidkey,
